@@ -1,0 +1,34 @@
+{
+  "name": "hypercore-xsalsa20-onwrite-hook",
+  "version": "0.0.1",
+  "description": "A write hook to decrypt data using a XSalsa20 cipher into a hypercore storage when replicating from peers",
+  "main": "index.js",
+  "scripts": {
+    "test": ":"
+  },
+  "keywords": [
+    "hypercore",
+    "xsalsa20",
+    "onwrite",
+    "hook"
+  ],
+  "author": "Joseph Werle <joseph.werle@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "hypercore": "^7.0.0",
+    "hypercore-replicate": "^0.1.0",
+    "random-access-memory": "^3.1.1",
+    "xsalsa20-encoding": "^0.1.0"
+  },
+  "dependencies": {
+    "xsalsa20": "^1.0.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jwerle/hypercore-xsalsa20-onwrite-hook.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jwerle/hypercore-xsalsa20-onwrite-hook/issues"
+  },
+  "homepage": "https://github.com/jwerle/hypercore-xsalsa20-onwrite-hook#readme"
+}
