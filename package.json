@@ -1,6 +1,6 @@
 {
   "name": "hypercore-xsalsa20-onwrite-hook",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A write hook to decrypt data using a XSalsa20 cipher into a hypercore storage when replicating from peers",
   "main": "index.js",
   "scripts": {
