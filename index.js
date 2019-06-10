@@ -42,7 +42,7 @@ function createHook(opts) {
         // We use the feed's public key as a nonce if one is not given
         const nonce = Buffer.from(opts.nonce || feed.key).slice(0, NONCE_BYTES)
         const key = Buffer.from(opts.key).slice(0, KEY_BYTES)
-        const xor = xsalsa20(nonce, key)
+        const xor = opts.xor || xsalsa20(nonce, key)
         xor.update(data, data)
         done(null)
       }
