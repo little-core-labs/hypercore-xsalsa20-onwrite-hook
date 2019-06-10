@@ -4,7 +4,7 @@ const NONCE_BYTES = 24
 const KEY_BYTES = 32
 
 function createHook(opts) {
-  if (!opts || 'object' !== typeof opts) {
+  if (opts && 'object' !== typeof opts) {
     throw new TypeError('Expecting options to be an object.')
   }
 
@@ -36,7 +36,7 @@ function createHook(opts) {
       // replicating with a peer.
       // The hook can only handle buffers as the 'xsalsa20' will
       // update the buffer in place
-      if (feed.writable || !peer || !Buffer.isBuffer(data)) {
+      if (!opts.key || feed.writable || !peer || !Buffer.isBuffer(data)) {
         done(null)
       } else {
         // We use the feed's public key as a nonce if one is not given
