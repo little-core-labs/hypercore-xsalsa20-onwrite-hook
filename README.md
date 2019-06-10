@@ -34,24 +34,34 @@ const crypto = require('crypto')
 const hook = require('hypercore-xsalsa20-onwrite-hook')
 const ram = require('random-access-memory')
 
-const kp = keyPair()
 const key = crypto.randomBytes(32)
-const codec = xsalsa20(kp.publicKey, key)
-const onwrite = hook({ key })
-const feed = hypercore(ram, {
-  key: kp.publicKey,
-  secretKey: kp.secretKey,
-  valueEncoding: codec,
-})
+const nonce = crypto.randomBytes(32)
+const onwrite = hook({ nonce, key })
+const { publicKey, secretKey } = keyPair()
+const valueEncoding = xsalsa20(nonce, key)
+
+const feed = hypercore(ram, publicKey, { secretKey, valueEncoding })
 
 feed.ready(() => {
-  const copy = hypercore(ram, feed.key, { onwrite })
+  const copy = hypercore(ram, publicKey, { onwrite })
+  const other = hypercore(ram, publicKey, { valueEncoding })
 
   feed.append('hello')
-  replicate(feed, copy, { live: true })
+
+  replicate(feed, copy.replicate({ live: true }), other.replicate({ live: true }), {
+    userData: Buffer.from([0xfa, 0xce]),
+    live: true
+  })
+
   copy.update(() => {
     copy.head((err, buf) => {
-      console.log('%', buf) // 'hello'
+      console.log('%s', buf) // 'hello'
+    })
+  })
+
+  other.update(() => {
+    other.head((err, buf) => {
+      console.log('%s', buf) // 'hello'
     })
   })
 })
