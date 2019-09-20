@@ -20,8 +20,7 @@ feed.ready(() => {
 
   feed.append('hello')
 
-  replicate(feed, copy.replicate({ live: true }), other.replicate({ live: true }), {
-    userData: Buffer.from([0xfa, 0xce]),
+  replicate(feed, replicate(copy, { live: true }), replicate(other, { live: true }), {
     live: true
   })
 
