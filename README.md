@@ -1,9 +1,8 @@
 hypercore-xsalsa20-onwrite-hook
 ===============================
 
-A write hook to decrypt data using a XSalsa20 cipher into a hypercore
-storage when replicating from peers.
-
+> A write hook to decrypt data using a xsalsa20 cipher into a Hypercore
+> storage when replicating from peers.
 
 ## Installation
 
@@ -14,71 +13,56 @@ $ npm install hypercore-xsalsa20-onwrite-hook
 ## Usage
 
 ```js
-const hook = require('hypercore-xsalsa20-onwrite-hook')
-const feed = hypercore(storage, key, {
-  onwrite: hook({
-    nonce: storageNonce,
-    key: sharedStorageKey
-  })
-})
+const nonces = ram() // or any `random-access-storage` compliant object
+const onwrite = hook(nonces, sharedSecret)
 ```
 
 ## Example
 
 ```js
-const { keyPair } = require('hypercore-crypto')
 const replicate = require('hypercore-replicate')
 const hypercore = require('hypercore')
-const xsalsa20 = require('xsalsa20-encoding')
-const crypto = require('crypto')
+const crypto = require('hypercore-crypto')
 const hook = require('hypercore-xsalsa20-onwrite-hook')
 const ram = require('random-access-memory')
 
 const key = crypto.randomBytes(32)
-const nonce = crypto.randomBytes(32)
-const onwrite = hook({ nonce, key })
-const { publicKey, secretKey } = keyPair()
-const valueEncoding = xsalsa20(nonce, key)
 
-const feed = hypercore(ram, publicKey, { secretKey, valueEncoding })
+const { publicKey, secretKey } = crypto.keyPair()
+const nonces = ram()
 
-feed.ready(() => {
-  const copy = hypercore(ram, publicKey, { onwrite })
-  const other = hypercore(ram, publicKey, { valueEncoding })
+const feed = hypercore(ram, publicKey, {
+  secretKey,
+  onwrite: hook(nonces, key)
+})
 
-  feed.append('hello')
+const copy = hypercore(ram, publicKey, {
+  onwrite: hook(nonces, key)
+})
 
-  replicate(feed, copy.replicate({ live: true }), other.replicate({ live: true }), {
-    userData: Buffer.from([0xfa, 0xce]),
-    live: true
-  })
+feed.append(Buffer.from('hello'), (err) => {
+  feed.head(console.log) // ciphertext
+})
 
-  copy.update(() => {
-    copy.head((err, buf) => {
-      console.log('%s', buf) // 'hello'
-    })
-  })
-
-  other.update(() => {
-    other.head((err, buf) => {
-      console.log('%s', buf) // 'hello'
-    })
-  })
+replicate(feed, copy, (err) => {
+  copy.head(console.log) // plaintext
 })
 ```
 
 ## API
 
-### `hook = require('hypercore-xsalsa20-onwrite-hook')(opts)`
+### `const onwrite = hook(nonceStorage, sharedKey)`
 
-where `opts` can be:
+Creates a `onwrite()` hook for a Hypercore feed that uses the
+xsalsa20 cipher to encipher or decipher blocks in a Hypercore feed.
+Blocks that are written to a Hypercore feed are encrypted detached
+from the nonce used for encryption. Nonces are written to a user
+supplied "nonce storage" which can be reused for deciphering blocks
+appended to a Hypercore feed.
 
-```js
-{
-  nonce: [Buffer], // An optional 24 byte nonce. If not given, the hypercore's public key is used
-  key: Buffer, // A required shared 32 byte shared secret key
-}
-```
+This function preserves block sizes but requires an external storage
+for nonces (`nonceStorage`). Users should provide a `random-access-storage`
+compliant instance or a factory function that returns one.
 
 ## License
 

@@ -1,56 +1,75 @@
-const xsalsa20 = require('xsalsa20')
+const xsalsa20 = require('xsalsa20-encoding')
+const assert = require('assert')
 
+/**
+ * The size in bytes of the nonce attached to an
+ * enciphered buffer returned from the xsalsa20
+ * encoding.
+ * @public
+ * @const
+ */
 const NONCE_BYTES = 24
-const KEY_BYTES = 32
 
-function createHook(opts) {
-  if (opts && 'object' !== typeof opts) {
-    throw new TypeError('Expecting options to be an object.')
+/**
+ * Creates a `onwrite()` hook for a Hypercore feed that uses the
+ * xsalsa20 cipher to encipher or decipher blocks in a Hypercore feed. Blocks
+ * that are written to a Hypercore feed are encrypted detached from the
+ * nonce used for encryption. Nonces are written to a user supplied
+ * "nonce storage" which can be reused for deciphering blocks appended
+ * to a Hypercore feed.
+ *
+ * This function preserves block sizes but requires an external storage
+ * for nonces. Users should provide a `random-access-storage` compliant
+ * instance or a factory function that returns one.
+ * @param {Function<Object,Buffer>} createStorage
+ * @param {String|Buffer} key
+ * @param {?(Object)} opts
+ * @return {Function}
+ */
+function createHook(createStorage, key, opts) {
+  if ('string' === typeof key) {
+    key = Buffer.from(key, 'hex')
   }
 
-  // make copy of opts because we'll modify the
-  // nonce and key in place if they are strings
-  opts =  Object.assign({}, opts)
+  opts = Object.assign({}, opts)
 
-  if ('string' === typeof opts.nonce) {
-    opts.nonce = Buffer.from(opts.nonce, 'hex')
+  assert(Buffer.isBuffer(key), '`key` is not a buffer.')
+
+  if (createStorage && 'object' !== typeof createStorage) {
+    assert('function' === typeof createStorage,
+      '`createStorage` is not a function.')
   }
 
-  if ('string' === typeof opts.key) {
-    opts.key = Buffer.from(opts.key, 'hex')
-  }
-
-  if (opts.nonce && !Buffer.isBuffer(opts.nonce)) {
-    throw new TypeError('Expecting given nonce to be a buffer.')
-  }
+  const storage = 'function' === typeof createStorage
+    ? createStorage(opts, key)
+    : createStorage
 
   return onwrite
 
   function onwrite(index, data, peer, done) {
-    const feed = this
+    const offset = index * NONCE_BYTES
 
-    // The caller could call `feed.append()` before the feed is ready
-    // which calls this hook synchronously
-    feed.ready(() => {
-      // This hook should only handle 'readable' feeds that are
-      // replicating with a peer.
-      // The hook can only handle buffers as the 'xsalsa20' will
-      // update the buffer in place
-      if (!opts.key || feed.writable || !peer || !Buffer.isBuffer(data)) {
+    if (!peer) {
+      const encrypted = xsalsa20(key).encode(data)
+      const nonce = encrypted.slice(0, NONCE_BYTES)
+      encrypted.slice(NONCE_BYTES).copy(data)
+      storage.write(offset, nonce, done)
+    } else {
+      storage.read(offset, NONCE_BYTES, (err, nonce) => {
+        // istanbul ignore next
+        if (err) { return done(err) }
+        const attached = Buffer.concat([nonce, data])
+        const decrypted = xsalsa20(key).decode(attached)
+        decrypted.copy(data)
         done(null)
-      } else {
-        // We use the feed's public key as a nonce if one is not given
-        const nonce = Buffer.from(opts.nonce || feed.key).slice(0, NONCE_BYTES)
-        const key = Buffer.from(opts.key).slice(0, KEY_BYTES)
-        const xor = opts.xor || xsalsa20(nonce, key)
-        xor.update(data, data)
-        done(null)
-      }
-    })
+      })
+    }
   }
 }
 
+/**
+ * Module exports.
+ */
 module.exports = Object.assign(createHook, {
-  NONCE_BYTES,
-  KEY_BYTES,
+  NONCE_BYTES
 })

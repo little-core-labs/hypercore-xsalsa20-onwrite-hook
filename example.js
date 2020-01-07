@@ -1,38 +1,28 @@
-const { keyPair } = require('hypercore-crypto')
 const replicate = require('hypercore-replicate')
 const hypercore = require('hypercore')
-const xsalsa20 = require('xsalsa20-encoding')
-const crypto = require('crypto')
+const crypto = require('hypercore-crypto')
 const hook = require('./')
 const ram = require('random-access-memory')
 
 const key = crypto.randomBytes(32)
-const nonce = crypto.randomBytes(32)
-const onwrite = hook({ nonce, key })
-const { publicKey, secretKey } = keyPair()
-const valueEncoding = xsalsa20(nonce, key)
 
-const feed = hypercore(ram, publicKey, { secretKey, valueEncoding })
+const { publicKey, secretKey } = crypto.keyPair()
+const nonces = ram()
 
-feed.ready(() => {
-  const copy = hypercore(ram, publicKey, { onwrite })
-  const other = hypercore(ram, publicKey, { valueEncoding })
+const feed = hypercore(ram, publicKey, {
+  secretKey,
+  onwrite: hook(nonces, key)
+})
 
-  feed.append('hello')
+const copy = hypercore(ram, publicKey, {
+  onwrite: hook(nonces, key)
+})
 
-  replicate(feed, replicate(copy, { live: true }), replicate(other, { live: true }), {
-    live: true
-  })
+feed.append(Buffer.from('hello'), (err) => {
+  feed.head(console.log) // ciphertext
+})
 
-  copy.update(() => {
-    copy.head((err, buf) => {
-      console.log('%s', buf) // 'hello'
-    })
-  })
-
-  other.update(() => {
-    other.head((err, buf) => {
-      console.log('%s', buf) // 'hello'
-    })
-  })
+replicate(feed, copy, (err) => {
+  if (err) throw err
+  copy.head(console.log) // plaintext
 })

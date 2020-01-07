@@ -4,7 +4,7 @@
   "description": "A write hook to decrypt data using a XSalsa20 cipher into a hypercore storage when replicating from peers",
   "main": "index.js",
   "scripts": {
-    "test": ":"
+    "test": "nyc tape test.js"
   },
   "keywords": [
     "hypercore",
@@ -16,12 +16,15 @@
   "license": "MIT",
   "devDependencies": {
     "hypercore": "^8.0.0",
+    "hypercore-crypto": "^1.0.0",
+    "hypercore-ready": "^0.2.0",
     "hypercore-replicate": "^0.2.0",
+    "nyc": "^15.0.0",
     "random-access-memory": "^3.1.1",
-    "xsalsa20-encoding": "^0.1.0"
+    "tape": "^4.12.1"
   },
   "dependencies": {
-    "xsalsa20": "^1.0.2"
+    "xsalsa20-encoding": "^0.2.0"
   },
   "repository": {
     "type": "git",
