@@ -24,7 +24,7 @@
     "tape": "^4.12.1"
   },
   "dependencies": {
-    "xsalsa20-encoding": "^0.2.0"
+    "xsalsa20-encoding": "^1.0.0"
   },
   "repository": {
     "type": "git",
