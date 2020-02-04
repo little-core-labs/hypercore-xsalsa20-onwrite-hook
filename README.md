@@ -13,8 +13,7 @@ $ npm install hypercore-xsalsa20-onwrite-hook
 ## Usage
 
 ```js
-const nonces = ram() // or any `random-access-storage` compliant object
-const onwrite = hook(nonces, sharedSecret)
+const onwrite = hook(sharedSecret)
 ```
 
 ## Example
@@ -30,7 +29,6 @@ const ram = require('random-access-memory')
 const key = crypto.randomBytes(32)
 
 const { publicKey, secretKey } = crypto.keyPair()
-const nonces = ram()
 
 const source = hypercore(ram, publicKey, {
   secretKey,
@@ -38,13 +36,13 @@ const source = hypercore(ram, publicKey, {
 
 const cipher = hypercore(ram, publicKey, {
   secretKey,
-  onwrite: hook(nonces, key)
+  onwrite: hook(key)
 })
 
 const edge = hypercore(ram, publicKey)
 
 const reader = hypercore(ram, publicKey, {
-  onwrite: hook(nonces, key)
+  onwrite: hook(key)
 })
 
 source.append(Buffer.from('hello'), (err) => {
@@ -74,14 +72,8 @@ source.append(Buffer.from('hello'), (err) => {
 
 Creates a `onwrite()` hook for a Hypercore feed that uses the
 xsalsa20 cipher to encipher or decipher blocks in a Hypercore feed.
-Blocks that are written to a Hypercore feed are encrypted detached
-from the nonce used for encryption. Nonces are written to a user
-supplied "nonce storage" which can be reused for deciphering blocks
-appended to a Hypercore feed.
-
-This function preserves block sizes but requires an external storage
-for nonces (`nonceStorage`). Users should provide a `random-access-storage`
-compliant instance or a factory function that returns one.
+Nonces are computed from the Hypercore feed's public key and block
+index.
 
 ## License
 

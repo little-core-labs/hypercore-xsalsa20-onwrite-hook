@@ -9,7 +9,6 @@ const ram = require('random-access-memory')
 const key = crypto.randomBytes(32)
 
 const { publicKey, secretKey } = crypto.keyPair()
-const nonces = ram()
 
 const source = File(__filename, {
   key: publicKey,
@@ -18,17 +17,17 @@ const source = File(__filename, {
 
   const cipher = hypercore(ram, publicKey, {
     secretKey,
-    onwrite: hook(nonces, key)
+    onwrite: hook(key)
   })
 
   const edge = hypercore(ram, publicKey)
 
   const reader = hypercore(ram, publicKey, {
-    onwrite: hook(nonces, key)
+    onwrite: hook(key)
   })
 
   source.ready(() => {
-    source.head(console.log) // plaintext
+    //source.head(console.log) // plaintext
 
     // load cipher hypercore
     pump(source.createReadStream(), cipher.createWriteStream(), (err) => {
